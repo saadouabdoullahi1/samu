@@ -1,0 +1,7 @@
+# Netlify auto-detects Next.js and applies its Next Runtime (SSR + route
+# handlers become serverless functions). Keep this minimal.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
