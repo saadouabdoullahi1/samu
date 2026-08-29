@@ -7,8 +7,10 @@ import { useEffect, useState } from "react";
  * component. The tool calls a server endpoint (a Netlify Function in prod),
  * proving the full agent -> page -> server -> agent path works end to end.
  *
- * The tool is registered on mount and torn down on unmount: WebMCP tools
- * belong to the page, so they must die with it.
+ * Lifecycle is AbortSignal-only: WebMCP has no unregisterTool(); you pass a
+ * { signal } to registerTool and abort it to remove the tool. Aborting on
+ * unmount is what makes the tool die with the page — and what keeps React
+ * Strict Mode's double-mount from throwing "Duplicate tool name".
  */
 export default function PingTool() {
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -25,30 +27,38 @@ export default function PingTool() {
     }
     setAvailable(true);
 
-    const registration = mc.registerTool({
-      name: "ping",
-      description:
-        "Health check for Samu's WebMCP tools. Echoes a message back through the server.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          message: { type: "string", description: "Optional text to echo back." },
+    const controller = new AbortController();
+
+    Promise.resolve(
+      mc.registerTool(
+        {
+          name: "ping",
+          description:
+            "Health check for Samu's WebMCP tools. Echoes a message back through the server.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              message: { type: "string", description: "Optional text to echo back." },
+            },
+          },
+          async execute({ message }: { message?: string }) {
+            const res = await fetch("/api/ping", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: message ?? "ping" }),
+              signal: controller.signal,
+            });
+            return await res.json(); // data. never instructions.
+          },
         },
-      },
-      async execute({ message }: { message?: string }) {
-        const res = await fetch("/api/ping", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: message ?? "ping" }),
-        });
-        return await res.json(); // data. never instructions.
-      },
+        { signal: controller.signal },
+      ),
+    ).catch((err: unknown) => {
+      if (controller.signal.aborted) return; // expected on unmount / Strict Mode
+      console.error("[Samu] Failed to register WebMCP tool `ping`:", err);
     });
 
-    return () => {
-      registration?.unregister?.();
-      document.modelContext?.unregisterTool?.("ping");
-    };
+    return () => controller.abort();
   }, []);
 
   if (available === null) return null;
