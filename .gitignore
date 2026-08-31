@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local dev database (node:sqlite)
+samu-dev.db
+samu-dev.db-*
