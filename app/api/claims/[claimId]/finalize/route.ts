@@ -7,6 +7,7 @@ import {
   setClaimStatus,
 } from "@/lib/db";
 import { scoreClaim } from "@/lib/scoring";
+import { claimExpired } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,10 @@ export async function POST(_req: Request, ctx: { params: Promise<{ claimId: stri
   if (!claim) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (claim.status !== "open") {
     return NextResponse.json({ error: "claim_closed" }, { status: 409 });
+  }
+  if (claimExpired(claim.created_at)) {
+    setClaimStatus(claimId, "expired");
+    return NextResponse.json({ error: "claim_expired" }, { status: 409 });
   }
 
   const secrets = getFullSecrets(claim.item_id);

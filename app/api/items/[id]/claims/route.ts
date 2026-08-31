@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { countClaims, createClaim, getItemSummary, MAX_CLAIMS_PER_ITEM } from "@/lib/db";
 import { BUDGET } from "@/lib/scoring";
+import { clientId } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,15 +20,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   } catch {
     // no body — fine
   }
-  const claimantKey =
-    (typeof body.claimant_key === "string" && body.claimant_key) ||
-    req.headers.get("x-claimant-key") ||
-    "anon";
 
-  if (countClaims(id, claimantKey) >= MAX_CLAIMS_PER_ITEM) {
+  // Rate-limit identity is server-derived (client IP in prod). A caller cannot
+  // mint fresh identities by changing a header/body value.
+  const identity = clientId(
+    req,
+    typeof body.claimant_key === "string" ? body.claimant_key : undefined,
+  );
+
+  if (countClaims(id, identity) >= MAX_CLAIMS_PER_ITEM) {
     return NextResponse.json({ error: "too_many_claims" }, { status: 429 });
   }
 
-  const claim = createClaim(id, claimantKey);
+  const claim = createClaim(id, identity);
   return NextResponse.json({ claim_id: claim.id, budget_left: BUDGET }, { status: 201 });
 }

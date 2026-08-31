@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { normalize } from "./normalize";
 
 /** A per-secret random salt, hex-encoded. */
@@ -16,7 +16,9 @@ export function hashValue(value: string, salt: string): string {
     .digest("hex");
 }
 
-/** Constant-time-ish comparison of a candidate against a stored hash. */
+/** Constant-time comparison of a candidate against a stored hash. */
 export function matchesHash(candidate: string, salt: string, storedHash: string): boolean {
-  return hashValue(candidate, salt) === storedHash;
+  const a = Buffer.from(hashValue(candidate, salt), "hex");
+  const b = Buffer.from(storedHash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
 }

@@ -5,8 +5,10 @@ import {
   hasAnswer,
   insertAnswer,
   secretKeys,
+  setClaimStatus,
 } from "@/lib/db";
 import { BUDGET } from "@/lib/scoring";
+import { claimExpired } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ claimId: strin
   if (!claim) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (claim.status !== "open") {
     return NextResponse.json({ error: "claim_closed" }, { status: 409 });
+  }
+  if (claimExpired(claim.created_at)) {
+    setClaimStatus(claimId, "expired");
+    return NextResponse.json({ error: "claim_expired" }, { status: 409 });
   }
 
   let body: { key?: unknown; value?: unknown } = {};
