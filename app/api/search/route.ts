@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     zone: m.zone,
     found_on: m.found_on,
     public_note: m.public_note,
+    status: m.status,
     url: m.url,
   }));
 

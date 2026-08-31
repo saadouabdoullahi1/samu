@@ -45,32 +45,17 @@ export interface ToolSpec {
   dynamic?: boolean; // registered only past a certain state (documentation flag)
 }
 
+// The spec describes only what it governs: a page's id and its route. The
+// visual copy (titles, intros) lives in each page component, not here.
 export interface PageSpec {
   id: PageId;
   path: string;
-  eyebrow: string;
-  title: string;
-  intro: string;
 }
 
 export const PAGES: PageSpec[] = [
-  { id: "home", path: "/", eyebrow: "WebMCP Challenge", title: "Samu", intro: "Prove it without revealing it." },
-  {
-    id: "lost",
-    path: "/lost",
-    eyebrow: "J'ai perdu quelque chose",
-    title: "Décrivez votre perte",
-    intro:
-      "Un agent structure votre description, cherche les objets candidats et ouvre la bonne page — où son outillage change pour l'entretien de vérification.",
-  },
-  {
-    id: "item",
-    path: "/item/[id]",
-    eyebrow: "Objet trouvé",
-    title: "Entretien de vérification",
-    intro:
-      "Répondez aux questions pour prouver que l'objet est le vôtre. 5 réponses maximum — le serveur calcule le verdict et ne renvoie qu'un booléen.",
-  },
+  { id: "home", path: "/" },
+  { id: "lost", path: "/lost" },
+  { id: "item", path: "/item/[id]" },
 ];
 
 export const TOOLS: ToolSpec[] = [

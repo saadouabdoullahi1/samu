@@ -119,6 +119,49 @@ export interface ItemSummary {
   status: string;
 }
 
+export interface NewSecretInput {
+  question: string;
+  kind: Kind;
+  choices?: string[] | null;
+  value: string;
+  weight: number;
+}
+
+export interface NewItemInput {
+  category: string;
+  colorFamily: string;
+  zone: string;
+  foundOn: string;
+  publicNote: string;
+  secrets: NewSecretInput[];
+}
+
+/** Insert a found item and its private secrets (hashed / stored server-side). */
+export function createFoundItem(input: NewItemInput): string {
+  const db = getDb();
+  const id = `itm_${randomUUID()}`;
+  db.prepare(
+    `INSERT INTO found_items (id, category, color_family, zone, found_on, public_note, status)
+     VALUES (?, ?, ?, ?, ?, ?, 'open')`,
+  ).run(id, input.category, input.colorFamily, input.zone, input.foundOn, input.publicNote);
+
+  const ins = db.prepare(
+    `INSERT INTO secrets (id, item_id, key, question, kind, choices, value_hash, value_text, salt, weight)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  input.secrets.forEach((s, i) => {
+    const key = `q${i + 1}`;
+    const choices = s.choices ? JSON.stringify(s.choices) : null;
+    if (s.kind === "text") {
+      ins.run(`sec_${randomUUID()}`, id, key, s.question, s.kind, choices, null, s.value, null, s.weight);
+    } else {
+      const salt = newSalt();
+      ins.run(`sec_${randomUUID()}`, id, key, s.question, s.kind, choices, hashValue(s.value, salt), null, salt, s.weight);
+    }
+  });
+  return id;
+}
+
 export function listItems(): ItemSummary[] {
   const rows = getDb()
     .prepare(

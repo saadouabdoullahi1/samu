@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, Check, Lock, MapPin, Send, X } from "lucide-react";
 import type { ItemSummary, PublicQuestion } from "@/lib/db";
 import { useWebmcpTools } from "@/app/hooks/useWebmcpTools";
 import { createRuntime, type ToolContext, type ToolEvent } from "@/app/lib/toolRuntime";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
+const BUDGET = 5;
+
+type Msg = { id: number; role: "samu" | "user" | "note"; text: string };
 
 export default function VerificationPanel({
   summary,
@@ -17,20 +21,29 @@ export default function VerificationPanel({
   const itemId = summary.item_id;
 
   const claimIdRef = useRef<string | null>(null);
-  const budgetLeftRef = useRef(5);
+  const budgetLeftRef = useRef(BUDGET);
+  const qIndexRef = useRef(0);
+  const answeredRef = useRef(0);
+  const msgId = useRef(0);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  const [claimId, setClaimId] = useState<string | null>(null);
-  const [budgetLeft, setBudgetLeft] = useState(5);
-  const [answered, setAnswered] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [current, setCurrent] = useState<PublicQuestion | null>(null);
+  const [started, setStarted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [input, setInput] = useState("");
   const [verdict, setVerdict] = useState<"verified" | "rejected" | null>(null);
   const [contact, setContact] = useState<"pending" | null>(null);
-  const [inputs, setInputs] = useState<Record<string, string>>({});
-  const [log, setLog] = useState<string[]>([]);
 
-  const append = useCallback((msg: string) => {
-    const t = new Date().toLocaleTimeString("fr-FR");
-    setLog((l) => [...l, `${t} · ${msg}`]);
+  const push = useCallback((role: Msg["role"], text: string) => {
+    setMessages((m) => [...m, { id: msgId.current++, role, text }]);
   }, []);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, busy]);
+
+  // --- spec-driven WebMCP runtime (also what external agents drive) ---------
 
   const ensureClaim = useCallback(async (): Promise<string> => {
     if (claimIdRef.current) return claimIdRef.current;
@@ -42,42 +55,14 @@ export default function VerificationPanel({
     const data = await res.json();
     claimIdRef.current = data.claim_id;
     budgetLeftRef.current = data.budget_left;
-    setClaimId(data.claim_id);
-    setBudgetLeft(data.budget_left);
-    append("Réclamation ouverte");
     return data.claim_id as string;
-  }, [itemId, append]);
+  }, [itemId]);
 
-  // Single place the UI reacts to any tool run — whether triggered by a button
-  // or by the agent, since both go through the same spec runtime.
-  const emit = useCallback(
-    (name: string, ev: ToolEvent) => {
-      if (name === "answer_question") {
-        if (ev.ok) {
-          const d = ev.data as { budget_left: number };
-          budgetLeftRef.current = d.budget_left;
-          setBudgetLeft(d.budget_left);
-          const key = String(ev.input.key ?? "");
-          setAnswered((a) => (a.includes(key) ? a : [...a, key]));
-          append(`Réponse « ${key} » enregistrée — budget ${d.budget_left}`);
-        } else {
-          append(`Réponse refusée (${(ev.data as { error?: string })?.error ?? ev.status})`);
-        }
-      } else if (name === "finalize_claim") {
-        const d = ev.data as { verified: boolean };
-        setVerdict(d.verified ? "verified" : "rejected");
-        append(`Verdict : ${d.verified ? "VÉRIFIÉ" : "REFUSÉ"} (aucun score renvoyé)`);
-      } else if (name === "request_contact") {
-        if (ev.ok) {
-          setContact("pending");
-          append("Contact demandé — en attente de l'approbation du déposant");
-        } else {
-          append(`Contact refusé (${(ev.data as { error?: string })?.error})`);
-        }
-      }
-    },
-    [append],
-  );
+  const emit = useCallback((name: string, ev: ToolEvent) => {
+    if (name === "answer_question" && ev.ok) {
+      budgetLeftRef.current = (ev.data as { budget_left: number }).budget_left;
+    }
+  }, []);
 
   const ctx = useMemo<ToolContext>(
     () => ({
@@ -93,169 +78,273 @@ export default function VerificationPanel({
   );
 
   const runtime = useMemo(() => createRuntime("item", ctx), [ctx]);
-  const available = useWebmcpTools(() => runtime.tools, [runtime]);
+  useWebmcpTools(() => runtime.tools, [runtime]);
 
-  const reset = () => {
-    claimIdRef.current = null;
-    budgetLeftRef.current = 5;
-    setClaimId(null);
-    setBudgetLeft(5);
-    setAnswered([]);
-    setVerdict(null);
-    setContact(null);
-    setInputs({});
-    append("Nouvelle réclamation");
+  // --- conversation flow (human façade over the same tools) -----------------
+
+  const askAt = (idx: number) => {
+    const q = questions[idx];
+    if (!q) return;
+    setCurrent(q);
+    push("samu", `Question ${answeredRef.current + 1} / ${BUDGET} — ${q.question}`);
   };
 
-  const locked = verdict !== null;
+  const finalizeFlow = async () => {
+    setCurrent(null);
+    push("samu", "Merci. Je vérifie votre propriété…");
+    setBusy(true);
+    const res = (await runtime.run("finalize_claim")) as { verified?: boolean };
+    setBusy(false);
+    setVerdict(res?.verified ? "verified" : "rejected");
+  };
+
+  const proceed = async () => {
+    qIndexRef.current += 1;
+    if (answeredRef.current >= BUDGET || qIndexRef.current >= questions.length) {
+      await finalizeFlow();
+    } else {
+      askAt(qIndexRef.current);
+    }
+  };
+
+  const answer = async (text: string) => {
+    if (!current || busy) return;
+    const q = current;
+    push("user", text);
+    setInput("");
+    setCurrent(null);
+    setBusy(true);
+    const res = (await runtime.run("answer_question", { key: q.key, value: text })) as {
+      error?: string;
+    };
+    setBusy(false);
+    if (res?.error) {
+      push("note", "Cette réponse n'a pas pu être enregistrée.");
+      return;
+    }
+    answeredRef.current += 1;
+    push("note", "Réponse enregistrée");
+    await proceed();
+  };
+
+  const skip = async () => {
+    if (!current || busy) return;
+    push("user", "Je préfère passer");
+    setCurrent(null);
+    await proceed();
+  };
+
+  const start = async () => {
+    setStarted(true);
+    setBusy(true);
+    await ensureClaim();
+    setBusy(false);
+    qIndexRef.current = 0;
+    answeredRef.current = 0;
+    askAt(0);
+  };
+
+  // --- Result screens -------------------------------------------------------
+
+  if (verdict === "verified") {
+    return (
+      <div className="flex flex-col items-center gap-5 rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-12 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <Check className="h-8 w-8" strokeWidth={3} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-2xl font-bold text-emerald-800">Propriété vérifiée</h3>
+          <p className="max-w-sm text-stone-600">
+            Cet objet correspond aux informations que vous avez fournies.
+          </p>
+        </div>
+        <div className="mt-2 w-full max-w-sm rounded-2xl bg-white p-4 text-left">
+          <p className="flex items-center gap-1.5 text-sm text-stone-500">
+            <MapPin className="h-4 w-4" /> Point de restitution
+          </p>
+          <p className="font-medium">{summary.zone}</p>
+        </div>
+        {contact === "pending" ? (
+          <p className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-emerald-700">
+            Demande envoyée — en attente de la personne qui a trouvé l&apos;objet.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={async () => {
+              await runtime.run("request_contact", {
+                message: "Bonjour, je pense que cet objet est le mien.",
+              });
+              setContact("pending");
+            }}
+            className="rounded-2xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark"
+          >
+            Contacter le déposant
+          </button>
+        )}
+        <p className="flex items-center gap-1.5 text-xs text-stone-400">
+          <Lock className="h-3.5 w-3.5" /> Vérification privée
+        </p>
+      </div>
+    );
+  }
+
+  if (verdict === "rejected") {
+    return (
+      <div className="flex flex-col items-center gap-5 rounded-3xl border border-red-200 bg-red-50 px-6 py-12 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white">
+          <X className="h-8 w-8" strokeWidth={3} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-2xl font-bold text-red-800">Vérification échouée</h3>
+          <p className="max-w-sm text-stone-600">
+            Les informations fournies ne permettent pas de confirmer la propriété de cet objet.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-2xl border border-stone-300 bg-white px-6 py-3 font-semibold text-stone-800 transition hover:border-stone-400"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  // --- Intro ----------------------------------------------------------------
+
+  if (!started) {
+    return (
+      <div className="flex flex-col gap-4 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft font-bold text-brand-dark">
+            S
+          </div>
+          <div>
+            <p className="font-semibold">Samu</p>
+            <p className="text-xs text-stone-400">Vérification de propriété</p>
+          </div>
+        </div>
+        <p className="text-stone-700">
+          Bonjour 👋 Je vais vous poser quelques questions pour vérifier que cet objet vous
+          appartient. Certaines informations ne sont connues que du propriétaire.
+        </p>
+        <p className="flex items-center gap-1.5 text-sm text-stone-500">
+          <Lock className="h-4 w-4" /> Vos réponses restent privées.
+        </p>
+        <button
+          type="button"
+          onClick={start}
+          className="w-fit rounded-2xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark"
+        >
+          Commencer
+        </button>
+      </div>
+    );
+  }
+
+  // --- Chat -----------------------------------------------------------------
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span
-          className={
-            "inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs " +
-            (available
-              ? "border-emerald-600/40 text-emerald-700 dark:text-emerald-400"
-              : "border-neutral-300 text-neutral-500 dark:border-neutral-700")
-          }
-        >
-          <span
-            className={"h-2 w-2 rounded-full " + (available ? "bg-emerald-500" : "bg-neutral-400")}
-            aria-hidden
-          />
-          {available === null
-            ? ""
-            : available
-              ? "Outils WebMCP actifs sur cette page"
-              : "WebMCP inactif — ChatGPT desktop / Chrome 149+"}
-        </span>
-        <span className="font-mono text-xs text-neutral-500">
-          budget : {budgetLeft} / 5 {claimId ? "· réclamation active" : ""}
-        </span>
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-stone-100 px-5 py-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-sm font-bold text-brand-dark">
+          S
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Samu</p>
+          <p className="flex items-center gap-1 text-xs text-stone-400">
+            <Lock className="h-3 w-3" /> Vos réponses restent privées
+          </p>
+        </div>
       </div>
 
-      {!locked && (
-        <div className="flex flex-col divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-          {questions.map((q) => {
-            const done = answered.includes(q.key);
-            const disabled = done || budgetLeft <= 0;
-            return (
-              <div key={q.key} className="flex flex-col gap-2 p-4">
-                <label className="text-sm font-medium" htmlFor={`q-${q.key}`}>
-                  {q.question}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {q.kind === "choice" ? (
-                    <select
-                      id={`q-${q.key}`}
-                      value={inputs[q.key] ?? ""}
-                      onChange={(e) => setInputs((s) => ({ ...s, [q.key]: e.target.value }))}
-                      className="flex-1 rounded border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
-                    >
-                      <option value="">—</option>
-                      {q.choices?.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id={`q-${q.key}`}
-                      value={inputs[q.key] ?? ""}
-                      onChange={(e) => setInputs((s) => ({ ...s, [q.key]: e.target.value }))}
-                      placeholder="votre réponse"
-                      className="flex-1 rounded border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => runtime.run("answer_question", { key: q.key, value: inputs[q.key] ?? "" })}
-                    disabled={disabled || !(inputs[q.key] ?? "").trim()}
-                    className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
-                  >
-                    Répondre
-                  </button>
-                </div>
-                {done && (
-                  <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                    ✓ enregistrée
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!locked && (
-        <button
-          type="button"
-          onClick={() => runtime.run("finalize_claim")}
-          disabled={answered.length === 0}
-          className="self-start rounded-full bg-emerald-600 px-5 py-2 font-medium text-white disabled:opacity-40"
-        >
-          Finaliser la réclamation
-        </button>
-      )}
-
-      {verdict === "verified" && (
-        <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 dark:bg-emerald-950/30">
-          <p className="font-semibold text-emerald-800 dark:text-emerald-300">Vérifié ✓</p>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            Le serveur a renvoyé <code>verified: true</code>. Aucun score n&apos;a été divulgué.
-          </p>
-          {contact === "pending" ? (
-            <p className="mt-3 font-mono text-sm text-emerald-700 dark:text-emerald-400">
-              Contact demandé — en attente d&apos;approbation du déposant.
-            </p>
+      <div className="flex max-h-[26rem] flex-col gap-3 overflow-y-auto px-5 py-5">
+        {messages.map((m) =>
+          m.role === "note" ? (
+            <div key={m.id} className="flex items-center justify-center gap-1.5 text-xs text-emerald-600">
+              <Check className="h-3.5 w-3.5" /> {m.text}
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() =>
-                runtime.run("request_contact", { message: "Bonjour, je pense que cet objet est le mien." })
-              }
-              className="mt-3 rounded-full border border-emerald-600 px-4 py-1.5 text-sm text-emerald-700 dark:text-emerald-400"
-            >
-              Demander le contact du déposant
-            </button>
-          )}
-        </div>
-      )}
+            <div key={m.id} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
+              <div
+                className={
+                  "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm " +
+                  (m.role === "user"
+                    ? "rounded-br-md bg-brand text-white"
+                    : "rounded-bl-md bg-stone-100 text-stone-800")
+                }
+              >
+                {m.text}
+              </div>
+            </div>
+          ),
+        )}
+        {busy && (
+          <div className="flex justify-start">
+            <div className="flex gap-1 rounded-2xl rounded-bl-md bg-stone-100 px-4 py-3">
+              <Dot /> <Dot /> <Dot />
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
 
-      {verdict === "rejected" && (
-        <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 dark:bg-red-950/30">
-          <p className="font-semibold text-red-800 dark:text-red-300">Refusé</p>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            Le serveur a renvoyé <code>verified: false</code> — sans score ni détail sur les
-            critères. Rien à sonder.
-          </p>
-        </div>
-      )}
-
-      {locked && (
-        <button
-          type="button"
-          onClick={reset}
-          className="self-start font-mono text-sm text-neutral-500 hover:underline"
-        >
-          ↻ nouvelle réclamation
-        </button>
-      )}
-
-      {log.length > 0 && (
-        <details className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-          <summary className="cursor-pointer font-mono text-xs uppercase tracking-widest text-neutral-500">
-            Journal ({log.length})
-          </summary>
-          <ul className="mt-2 flex flex-col gap-1 font-mono text-xs text-neutral-500">
-            {log.map((line, i) => (
-              <li key={i}>{line}</li>
+      <div className="border-t border-stone-100 p-4">
+        {current?.kind === "choice" && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {current.choices?.map((c) => (
+              <button
+                key={c}
+                type="button"
+                disabled={busy}
+                onClick={() => answer(c)}
+                className="rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 transition hover:border-brand hover:bg-brand-soft disabled:opacity-40"
+              >
+                {c}
+              </button>
             ))}
-          </ul>
-        </details>
-      )}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (input.trim() && current) answer(input.trim());
+          }}
+          className="flex items-center gap-2"
+        >
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={!current || busy}
+            placeholder={current ? "Votre réponse…" : "Vérification en cours…"}
+            className="flex-1 rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm focus:border-brand focus:outline-none disabled:bg-stone-50"
+          />
+          <button
+            type="submit"
+            disabled={!current || busy || !input.trim()}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white transition hover:bg-brand-dark disabled:opacity-40"
+            aria-label="Envoyer"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </form>
+        {current && (
+          <button
+            type="button"
+            onClick={skip}
+            disabled={busy}
+            className="mt-2 flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600"
+          >
+            Je ne sais pas <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+      </div>
     </div>
   );
+}
+
+function Dot() {
+  return <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400" />;
 }
