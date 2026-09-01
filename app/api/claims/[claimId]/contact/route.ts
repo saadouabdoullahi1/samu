@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // server-side: a manipulated agent that calls this early is refused.
 export async function POST(req: Request, ctx: { params: Promise<{ claimId: string }> }) {
   const { claimId } = await ctx.params;
-  const claim = getClaim(claimId);
+  const claim = await getClaim(claimId);
   if (!claim) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (claim.status !== "verified") {
     return NextResponse.json({ error: "not_verified" }, { status: 403 });

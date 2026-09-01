@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic";
 // Weights are never exposed.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getItemSummary(id)) {
+  if (!(await getItemSummary(id))) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   return NextResponse.json({
-    questions: listQuestions(id),
+    questions: await listQuestions(id),
     budget: BUDGET,
     budget_left: BUDGET,
   });

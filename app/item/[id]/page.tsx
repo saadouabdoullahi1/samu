@@ -17,7 +17,7 @@ function formatDate(iso: string): string {
 
 export default async function ItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const summary = getItemSummary(id);
+  const summary = await getItemSummary(id);
   if (!summary) notFound();
   const s = statusMeta(summary.status);
 

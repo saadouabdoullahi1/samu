@@ -11,21 +11,21 @@ export const dynamic = "force-dynamic";
 // is spent or every question has been answered.
 export async function GET(_req: Request, ctx: { params: Promise<{ claimId: string }> }) {
   const { claimId } = await ctx.params;
-  const claim = getClaim(claimId);
+  const claim = await getClaim(claimId);
   if (!claim) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (claim.status !== "open") return NextResponse.json({ done: true, reason: "closed" });
   if (claimExpired(claim.created_at)) {
-    setClaimStatus(claimId, "expired");
+    await setClaimStatus(claimId, "expired");
     return NextResponse.json({ done: true, reason: "expired" });
   }
 
-  const answers = listAnswers(claimId);
+  const answers = await listAnswers(claimId);
   if (answers.length >= BUDGET) {
     return NextResponse.json({ done: true, reason: "budget", answered: answers.length, budget: BUDGET });
   }
 
   const answered = new Set(answers.map((a) => a.key));
-  const next = listQuestions(claim.item_id).find((q) => !answered.has(q.key));
+  const next = (await listQuestions(claim.item_id)).find((q) => !answered.has(q.key));
   if (!next) {
     return NextResponse.json({ done: true, reason: "complete", answered: answers.length, budget: BUDGET });
   }

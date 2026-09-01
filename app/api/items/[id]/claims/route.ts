@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // spends answers into before finalizing.
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getItemSummary(id)) {
+  if (!(await getItemSummary(id))) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
@@ -28,10 +28,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     typeof body.claimant_key === "string" ? body.claimant_key : undefined,
   );
 
-  if (countClaims(id, identity) >= MAX_CLAIMS_PER_ITEM) {
+  if ((await countClaims(id, identity)) >= MAX_CLAIMS_PER_ITEM) {
     return NextResponse.json({ error: "too_many_claims" }, { status: 429 });
   }
 
-  const claim = createClaim(id, identity);
+  const claim = await createClaim(id, identity);
   return NextResponse.json({ claim_id: claim.id, budget_left: BUDGET }, { status: 201 });
 }

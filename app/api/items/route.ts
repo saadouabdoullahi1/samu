@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "need_private_detail" }, { status: 400 });
   }
 
-  const id = createFoundItem({ category, colorFamily, zone, foundOn, publicNote, secrets });
+  const id = await createFoundItem({ category, colorFamily, zone, foundOn, publicNote, secrets });
   return NextResponse.json({ item_id: id, url: `/item/${id}` }, { status: 201 });
 }
 

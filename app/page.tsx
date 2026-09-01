@@ -5,8 +5,8 @@ import ObjectCard from "./components/ObjectCard";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const items = listItems().slice(0, 3);
+export default async function Home() {
+  const items = (await listItems()).slice(0, 3);
 
   return (
     <main>

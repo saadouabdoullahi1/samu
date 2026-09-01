@@ -1,7 +1,15 @@
 # Netlify auto-detects Next.js and applies its Next Runtime (SSR + route
 # handlers become serverless functions). Keep this minimal.
+#
+# REQUIRED environment variable (set in Netlify UI → Site settings → Env):
+#   DATABASE_URL   Neon Postgres connection string (pooled). When present, the
+#                  app uses Postgres; without it, it falls back to local SQLite
+#                  which does NOT work on serverless — so this must be set.
+# OPTIONAL:
+#   OPENAI_API_KEY Enables semantic (embedding) matching for free-text answers;
+#                  without it the engine uses a local trigram fallback.
 [build]
   command = "npm run build"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"

@@ -27,12 +27,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const matches = searchItems({
+  const matches = (await searchItems({
     // category (when present) boosts the free-text relevance match
     description: [category, description].filter(Boolean).join(" "),
     zone: str(body.location) || str(body.zone) || undefined,
     since: str(body.date) || str(body.since) || undefined,
-  }).map((m) => ({
+  })).map((m) => ({
     item_id: m.item_id,
     category: m.category,
     color_family: m.color_family,

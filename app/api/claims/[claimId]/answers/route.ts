@@ -21,16 +21,16 @@ export const dynamic = "force-dynamic";
 // It never reveals whether the answer was correct.
 export async function POST(req: Request, ctx: { params: Promise<{ claimId: string }> }) {
   const { claimId } = await ctx.params;
-  const claim = getClaim(claimId);
+  const claim = await getClaim(claimId);
   if (!claim) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (claim.status !== "open") {
     return NextResponse.json({ error: "claim_closed" }, { status: 409 });
   }
   if (claimExpired(claim.created_at)) {
-    setClaimStatus(claimId, "expired");
+    await setClaimStatus(claimId, "expired");
     return NextResponse.json({ error: "claim_expired" }, { status: 409 });
   }
-  if (countAnswers(claimId) >= BUDGET) {
+  if ((await countAnswers(claimId)) >= BUDGET) {
     return NextResponse.json({ error: "budget_exhausted", budget_left: 0 }, { status: 409 });
   }
 
@@ -48,22 +48,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ claimId: strin
     value = body.value;
   } else if (typeof body.answer === "string") {
     value = body.answer;
-    const answered = new Set(listAnswers(claimId).map((a) => a.key));
-    const next = listQuestions(claim.item_id).find((q) => !answered.has(q.key));
+    const answered = new Set((await listAnswers(claimId)).map((a) => a.key));
+    const next = (await listQuestions(claim.item_id)).find((q) => !answered.has(q.key));
     if (!next) return NextResponse.json({ error: "no_more_questions" }, { status: 409 });
     key = next.key;
   } else {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  if (!secretKeys(claim.item_id).has(key)) {
+  if (!(await secretKeys(claim.item_id)).has(key)) {
     return NextResponse.json({ error: "unknown_question" }, { status: 400 });
   }
-  if (hasAnswer(claimId, key)) {
+  if (await hasAnswer(claimId, key)) {
     return NextResponse.json({ error: "already_answered" }, { status: 409 });
   }
 
-  insertAnswer(claimId, key, value);
-  const answered = countAnswers(claimId);
+  await insertAnswer(claimId, key, value);
+  const answered = await countAnswers(claimId);
   return NextResponse.json({ budget_left: BUDGET - answered, answered });
 }
