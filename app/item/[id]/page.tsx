@@ -12,7 +12,7 @@ function formatDate(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    : d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
 export default async function ItemPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,7 +24,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
       <Link href="/lost" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800">
-        <ArrowLeft className="h-4 w-4" /> Objets trouvés
+        <ArrowLeft className="h-4 w-4" /> Found items
       </Link>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
@@ -53,7 +53,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
               <MapPin className="h-4 w-4" /> {summary.zone}
             </span>
             <span className="flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4" /> Trouvé le {formatDate(summary.found_on)}
+              <CalendarDays className="h-4 w-4" /> Found {formatDate(summary.found_on)}
             </span>
           </div>
         </div>
@@ -61,10 +61,10 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
 
       <section className="mt-8 flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold tracking-tight">C&apos;est votre objet ?</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Is this your item?</h2>
           <p className="text-stone-600">
-            Répondez à quelques questions que seul le propriétaire devrait connaître. Vos réponses
-            restent privées et ne sont jamais dévoilées.
+            Answer a few questions only the owner should know. Your answers stay private and are
+            never revealed.
           </p>
         </div>
         <VerificationPanel summary={summary} />

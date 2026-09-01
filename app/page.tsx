@@ -14,29 +14,29 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-16 sm:pt-24">
         <div className="flex max-w-3xl flex-col gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand-dark">
-            Retrouver. Vérifier. Restituer.
+            Find it. Verify it. Return it.
           </span>
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-            Vous avez perdu
+            Lost
             <br />
-            quelque chose ?
+            something?
           </h1>
           <p className="max-w-xl text-lg text-stone-600">
-            Samu vous aide à retrouver les objets perdus et vérifie que vous êtes bien leur
-            propriétaire — sans jamais révéler les informations secrètes.
+            Samu helps you find lost items and verifies that you are their owner — without ever
+            revealing the secret details.
           </p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/lost"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-center font-semibold text-white shadow-sm transition hover:bg-brand-dark"
             >
-              <Search className="h-5 w-5" /> J&apos;ai perdu quelque chose
+              <Search className="h-5 w-5" /> I lost something
             </Link>
             <Link
               href="/found"
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-stone-300 bg-white px-6 py-3.5 text-center font-semibold text-stone-800 transition hover:border-stone-400"
             >
-              <Package className="h-5 w-5" /> J&apos;ai trouvé un objet
+              <Package className="h-5 w-5" /> I found something
             </Link>
           </div>
         </div>
@@ -50,10 +50,10 @@ export default async function Home() {
             className="group flex flex-col gap-3 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <Search className="h-9 w-9 text-brand" strokeWidth={1.75} />
-            <h2 className="text-2xl font-bold">J&apos;ai perdu quelque chose</h2>
-            <p className="text-stone-600">Rechercher un objet parmi ceux qui ont été retrouvés.</p>
+            <h2 className="text-2xl font-bold">I lost something</h2>
+            <p className="text-stone-600">Search among the items that have been found.</p>
             <span className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-dark group-hover:gap-2 group-hover:transition-all">
-              Rechercher <ArrowRight className="h-4 w-4" />
+              Search <ArrowRight className="h-4 w-4" />
             </span>
           </Link>
           <Link
@@ -61,10 +61,10 @@ export default async function Home() {
             className="group flex flex-col gap-3 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <Package className="h-9 w-9 text-brand" strokeWidth={1.75} />
-            <h2 className="text-2xl font-bold">J&apos;ai trouvé un objet</h2>
-            <p className="text-stone-600">Déclarer un objet trouvé pour aider son propriétaire.</p>
+            <h2 className="text-2xl font-bold">I found something</h2>
+            <p className="text-stone-600">Report a found item to help its owner.</p>
             <span className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-dark group-hover:gap-2 group-hover:transition-all">
-              Déclarer <ArrowRight className="h-4 w-4" />
+              Report <ArrowRight className="h-4 w-4" />
             </span>
           </Link>
         </div>
@@ -72,12 +72,12 @@ export default async function Home() {
 
       {/* How it works */}
       <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
-        <h2 className="text-3xl font-bold tracking-tight">Comment fonctionne Samu ?</h2>
+        <h2 className="text-3xl font-bold tracking-tight">How Samu works</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {[
-            ["01", "Déclarer", "Une personne trouve un objet et renseigne ses informations."],
-            ["02", "Vérifier", "Le propriétaire répond à des questions que seul lui devrait connaître."],
-            ["03", "Restituer", "Une fois la propriété vérifiée, l'objet peut être restitué."],
+            ["01", "Report", "Someone finds an item and enters its details."],
+            ["02", "Verify", "The owner answers questions only they should know."],
+            ["03", "Return", "Once ownership is verified, the item can be returned."],
           ].map(([n, title, desc]) => (
             <div key={n} className="flex flex-col gap-3 rounded-3xl border border-stone-200 bg-white p-7">
               <span className="text-sm font-bold text-brand">{n}</span>
@@ -91,12 +91,12 @@ export default async function Home() {
       {/* Recently found objects */}
       <section id="objets" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-10">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Objets récemment trouvés</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Recently found items</h2>
           <Link
             href="/lost"
             className="inline-flex items-center gap-1 text-sm font-semibold text-brand-dark hover:gap-2 hover:transition-all"
           >
-            Tout voir <ArrowRight className="h-4 w-4" />
+            See all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -110,31 +110,29 @@ export default async function Home() {
       <section id="verification" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
         <div className="grid items-center gap-10 rounded-3xl border border-stone-200 bg-white p-8 sm:p-12 md:grid-cols-2">
           <div className="flex flex-col gap-4">
-            <h2 className="text-3xl font-bold tracking-tight">Vérification privée</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Private verification</h2>
             <p className="text-lg text-stone-600">
-              Prouvez que c&apos;est à vous, sans révéler les secrets qui le prouvent. Samu vérifie
-              vos réponses sans jamais dévoiler les informations enregistrées par la personne qui a
-              trouvé l&apos;objet.
+              Prove it&apos;s yours, without revealing the secrets that prove it. Samu checks your
+              answers without ever disclosing the details recorded by whoever found the item.
             </p>
             <p className="text-stone-500">
-              Le résultat communiqué reste simple : <strong className="text-stone-800">vérifié</strong>{" "}
-              ou <strong className="text-stone-800">non vérifié</strong>. Jamais de détail, jamais de
-              secret.
+              The result stays simple: <strong className="text-stone-800">verified</strong> or{" "}
+              <strong className="text-stone-800">not verified</strong>. No details, no secrets.
             </p>
           </div>
           <div className="flex flex-col gap-3 rounded-2xl bg-stone-50 p-6">
             <div className="flex items-center gap-2 text-sm text-stone-500">
-              <Lock className="h-4 w-4" /> Question de vérification
+              <Lock className="h-4 w-4" /> Verification question
             </div>
-            <p className="text-lg font-medium">Quel objet important se trouvait dans le sac ?</p>
+            <p className="text-lg font-medium">What important item was inside the bag?</p>
             <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-stone-400">
-              votre réponse…
+              your answer…
             </div>
             <div className="mt-2 flex items-center gap-3 rounded-xl bg-emerald-50 px-4 py-3">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white">
                 <Check className="h-4 w-4" strokeWidth={3} />
               </span>
-              <span className="font-semibold text-emerald-700">Propriété vérifiée</span>
+              <span className="font-semibold text-emerald-700">Ownership verified</span>
             </div>
           </div>
         </div>
@@ -142,12 +140,12 @@ export default async function Home() {
 
       {/* Security / trust */}
       <section id="securite" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-10">
-        <h2 className="text-3xl font-bold tracking-tight">Conçu pour la confiance</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Built for trust</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[
-            { Icon: Lock, title: "Vos réponses restent privées", desc: "Les informations secrètes ne quittent jamais nos serveurs et ne s'affichent nulle part." },
-            { Icon: ShieldCheck, title: "Résistant à la fraude", desc: "Nombre d'essais limité et détails décisifs requis : impossible de deviner au hasard." },
-            { Icon: Check, title: "Verdict clair", desc: "Vérifié ou non vérifié. Aucun score, aucune information indirecte divulguée." },
+            { Icon: Lock, title: "Your answers stay private", desc: "The secret details never leave our servers and are shown nowhere." },
+            { Icon: ShieldCheck, title: "Fraud-resistant", desc: "Limited attempts and a decisive detail required: guessing at random can't pass." },
+            { Icon: Check, title: "A clear verdict", desc: "Verified or not verified. No score, no indirect information disclosed." },
           ].map(({ Icon, title, desc }) => (
             <div key={title} className="flex flex-col gap-3 rounded-3xl border border-stone-200 bg-white p-7">
               <Icon className="h-8 w-8 text-brand" strokeWidth={1.75} />
@@ -162,23 +160,23 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="flex flex-col items-center gap-6 rounded-3xl bg-stone-900 px-6 py-16 text-center text-white">
           <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-            Un objet perdu ou trouvé ?
+            Lost or found an item?
           </h2>
           <p className="max-w-xl text-stone-300">
-            Retrouvez ce qui compte, et rendez à chacun ce qui lui appartient.
+            Recover what matters, and give everyone back what belongs to them.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href="/lost"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-dark"
             >
-              <Search className="h-5 w-5" /> J&apos;ai perdu quelque chose
+              <Search className="h-5 w-5" /> I lost something
             </Link>
             <Link
               href="/found"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-6 py-3.5 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
             >
-              <Package className="h-5 w-5" /> J&apos;ai trouvé un objet
+              <Package className="h-5 w-5" /> I found something
             </Link>
           </div>
         </div>

@@ -48,7 +48,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
 
   const finalizeFlow = useCallback(async () => {
     setCurrent(null);
-    push("samu", "Merci. Je vérifie votre propriété…");
+    push("samu", "Thanks. Verifying your ownership…");
     setBusy(true);
     const res = (await runtime.run("complete_verification", { claim_id: claim() })) as {
       verified?: boolean;
@@ -71,7 +71,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
       return;
     }
     setCurrent(res.question);
-    push("samu", `Question ${(res.answered ?? 0) + 1} / ${res.budget ?? 5} — ${res.question.question}`);
+    push("samu", `Question ${(res.answered ?? 0) + 1} of ${res.budget ?? 5} — ${res.question.question}`);
   }, [finalizeFlow, push, runtime]);
 
   const answer = async (text: string) => {
@@ -86,10 +86,10 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
     })) as { error?: string };
     setBusy(false);
     if (res?.error) {
-      push("note", "Cette réponse n'a pas pu être enregistrée.");
+      push("note", "That answer couldn't be recorded.");
       return;
     }
-    push("note", "Réponse enregistrée");
+    push("note", "Answer recorded");
     await loadNext();
   };
 
@@ -100,7 +100,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
     claimIdRef.current = res?.claim_id ?? null;
     setBusy(false);
     if (!claimIdRef.current) {
-      push("samu", "Désolé, trop de tentatives récentes. Réessayez plus tard.");
+      push("samu", "Sorry, too many recent attempts. Please try again later.");
       return;
     }
     await loadNext();
@@ -115,20 +115,20 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
           <Check className="h-8 w-8" strokeWidth={3} />
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-2xl font-bold text-emerald-800">Propriété vérifiée</h3>
+          <h3 className="text-2xl font-bold text-emerald-800">Ownership verified</h3>
           <p className="max-w-sm text-stone-600">
-            Cet objet correspond aux informations que vous avez fournies.
+            This item matches the information you provided.
           </p>
         </div>
         <div className="mt-2 w-full max-w-sm rounded-2xl bg-white p-4 text-left">
           <p className="flex items-center gap-1.5 text-sm text-stone-500">
-            <MapPin className="h-4 w-4" /> Point de restitution
+            <MapPin className="h-4 w-4" /> Return point
           </p>
           <p className="font-medium">{summary.zone}</p>
         </div>
         {contact === "pending" ? (
           <p className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-emerald-700">
-            Demande envoyée — en attente de la personne qui a trouvé l&apos;objet.
+            Request sent — waiting for the person who found the item.
           </p>
         ) : (
           <button
@@ -136,17 +136,17 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
             onClick={async () => {
               await runtime.run("request_contact", {
                 claim_id: claim(),
-                message: "Bonjour, je pense que cet objet est le mien.",
+                message: "Hello, I believe this item is mine.",
               });
               setContact("pending");
             }}
             className="rounded-2xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark"
           >
-            Contacter le déposant
+            Contact the finder
           </button>
         )}
         <p className="flex items-center gap-1.5 text-xs text-stone-400">
-          <Lock className="h-3.5 w-3.5" /> Vérification privée
+          <Lock className="h-3.5 w-3.5" /> Private verification
         </p>
       </div>
     );
@@ -159,9 +159,9 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
           <X className="h-8 w-8" strokeWidth={3} />
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-2xl font-bold text-red-800">Vérification échouée</h3>
+          <h3 className="text-2xl font-bold text-red-800">Verification failed</h3>
           <p className="max-w-sm text-stone-600">
-            Les informations fournies ne permettent pas de confirmer la propriété de cet objet.
+            The information provided doesn&apos;t confirm ownership of this item.
           </p>
         </div>
         <button
@@ -169,7 +169,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
           onClick={() => window.location.reload()}
           className="rounded-2xl border border-stone-300 bg-white px-6 py-3 font-semibold text-stone-800 transition hover:border-stone-400"
         >
-          Réessayer
+          Try again
         </button>
       </div>
     );
@@ -186,22 +186,22 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
           </div>
           <div>
             <p className="font-semibold">Samu</p>
-            <p className="text-xs text-stone-400">Vérification de propriété</p>
+            <p className="text-xs text-stone-400">Ownership verification</p>
           </div>
         </div>
         <p className="text-stone-700">
-          Bonjour 👋 Je vais vous poser quelques questions pour vérifier que cet objet vous
-          appartient. Certaines informations ne sont connues que du propriétaire.
+          Hi 👋 I&apos;ll ask you a few questions to verify that this item belongs to you. Some
+          details are known only to the owner.
         </p>
         <p className="flex items-center gap-1.5 text-sm text-stone-500">
-          <Lock className="h-4 w-4" /> Vos réponses restent privées.
+          <Lock className="h-4 w-4" /> Your answers stay private.
         </p>
         <button
           type="button"
           onClick={start}
           className="w-fit rounded-2xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark"
         >
-          Commencer
+          Start
         </button>
       </div>
     );
@@ -218,7 +218,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
         <div className="flex-1">
           <p className="text-sm font-semibold">Samu</p>
           <p className="flex items-center gap-1 text-xs text-stone-400">
-            <Lock className="h-3 w-3" /> Vos réponses restent privées
+            <Lock className="h-3 w-3" /> Your answers stay private
           </p>
         </div>
       </div>
@@ -281,14 +281,14 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={!current || busy}
-            placeholder={current ? "Votre réponse…" : "Vérification en cours…"}
+            placeholder={current ? "Your answer…" : "Verifying…"}
             className="flex-1 rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm focus:border-brand focus:outline-none disabled:bg-stone-50"
           />
           <button
             type="submit"
             disabled={!current || busy || !input.trim()}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white transition hover:bg-brand-dark disabled:opacity-40"
-            aria-label="Envoyer"
+            aria-label="Send"
           >
             <Send className="h-5 w-5" />
           </button>

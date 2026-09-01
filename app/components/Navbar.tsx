@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Menu, Search, X } from "lucide-react";
 
 const LINKS = [
-  { href: "/#objets", label: "Objets trouvés" },
-  { href: "/#how", label: "Comment ça marche" },
-  { href: "/#securite", label: "Sécurité" },
+  { href: "/#objets", label: "Found items" },
+  { href: "/#how", label: "How it works" },
+  { href: "/#securite", label: "Security" },
 ];
 
 export default function Navbar() {
@@ -30,7 +30,7 @@ export default function Navbar() {
             href="/lost"
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
           >
-            <Search className="h-4 w-4" /> Rechercher
+            <Search className="h-4 w-4" /> Search
           </Link>
         </div>
 
@@ -62,7 +62,7 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
             className="mt-1 rounded-xl bg-brand px-4 py-2 text-center text-sm font-semibold text-white"
           >
-            Rechercher
+            Search
           </Link>
         </div>
       )}

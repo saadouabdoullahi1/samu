@@ -11,22 +11,28 @@ export interface StatusMeta {
 export function statusMeta(status: string): StatusMeta {
   switch (status) {
     case "verified":
-      return { label: "Propriétaire vérifié", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" };
+      return { label: "Owner verified", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" };
     case "returned":
-      return { label: "Restitué", dot: "bg-stone-400", text: "text-stone-500", bg: "bg-stone-100" };
+      return { label: "Returned", dot: "bg-stone-400", text: "text-stone-500", bg: "bg-stone-100" };
     default: // "open"
-      return { label: "En attente", dot: "bg-brand", text: "text-brand-dark", bg: "bg-brand-soft" };
+      return { label: "Pending", dot: "bg-brand", text: "text-brand-dark", bg: "bg-brand-soft" };
   }
 }
 
 const CATEGORY_EMOJI: Record<string, string> = {
+  // French (seeded demo data) + English (new items) keys
   téléphone: "📱",
   telephone: "📱",
+  phone: "📱",
   portefeuille: "👛",
+  wallet: "👛",
   "sac à dos": "🎒",
   sac: "🎒",
+  bag: "🎒",
+  backpack: "🎒",
   clés: "🔑",
   cles: "🔑",
+  keys: "🔑",
   documents: "📄",
 };
 
@@ -39,9 +45,13 @@ export function categoryTint(category: string): string {
   const map: Record<string, string> = {
     téléphone: "from-sky-100 to-sky-50",
     telephone: "from-sky-100 to-sky-50",
+    phone: "from-sky-100 to-sky-50",
     portefeuille: "from-amber-100 to-amber-50",
+    wallet: "from-amber-100 to-amber-50",
     "sac à dos": "from-violet-100 to-violet-50",
     sac: "from-violet-100 to-violet-50",
+    bag: "from-violet-100 to-violet-50",
+    backpack: "from-violet-100 to-violet-50",
   };
   return map[category.toLowerCase()] ?? "from-stone-100 to-stone-50";
 }

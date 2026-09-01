@@ -10,10 +10,9 @@ export default function LostPage() {
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
           <Search className="h-7 w-7" strokeWidth={2} />
         </span>
-        <h1 className="text-4xl font-extrabold tracking-tight">Retrouvons votre objet</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">Let&apos;s find your item</h1>
         <p className="max-w-xl text-lg text-stone-600">
-          Décrivez simplement ce que vous avez perdu. Samu recherchera les objets trouvés qui
-          pourraient correspondre.
+          Just describe what you lost. Samu will search the found items that could match.
         </p>
       </header>
 

@@ -15,14 +15,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Samu — Retrouver, vérifier, restituer",
+  title: "Samu — Find it, verify it, return it",
   description:
-    "Samu vous aide à retrouver les objets perdus et vérifie que vous êtes bien leur propriétaire — sans jamais révéler les informations secrètes.",
+    "Samu helps you find lost items and verifies that you are their owner — without ever revealing the secret details.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <Navbar />
         <div className="flex-1">{children}</div>

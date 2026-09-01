@@ -9,30 +9,30 @@ export default function Footer() {
             Sa<span className="text-brand">mu</span>
           </span>
           <p className="max-w-xs text-sm text-stone-500">
-            Retrouver. Vérifier. Restituer. Prouvez que c&apos;est à vous, sans révéler les secrets
-            qui le prouvent.
+            Find it. Verify it. Return it. Prove it&apos;s yours, without revealing the secrets that
+            prove it.
           </p>
         </div>
         <div className="flex gap-12 text-sm">
           <div className="flex flex-col gap-2">
-            <span className="font-semibold text-stone-800">Produit</span>
+            <span className="font-semibold text-stone-800">Product</span>
             <Link href="/lost" className="text-stone-500 hover:text-stone-800">
-              J&apos;ai perdu
+              I lost something
             </Link>
             <Link href="/found" className="text-stone-500 hover:text-stone-800">
-              J&apos;ai trouvé
+              I found something
             </Link>
             <a href="/#how" className="text-stone-500 hover:text-stone-800">
-              Comment ça marche
+              How it works
             </a>
           </div>
           <div className="flex flex-col gap-2">
-            <span className="font-semibold text-stone-800">Confiance</span>
+            <span className="font-semibold text-stone-800">Trust</span>
             <a href="/#securite" className="text-stone-500 hover:text-stone-800">
-              Sécurité
+              Security
             </a>
             <a href="/#verification" className="text-stone-500 hover:text-stone-800">
-              Vérification privée
+              Private verification
             </a>
           </div>
         </div>

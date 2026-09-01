@@ -16,7 +16,7 @@ export interface ObjectCardData {
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
 export default function ObjectCard({ item }: { item: ObjectCardData }) {
@@ -40,7 +40,7 @@ export default function ObjectCard({ item }: { item: ObjectCardData }) {
             <MapPin className="h-4 w-4" /> {item.zone}
           </span>
           <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-4 w-4" /> Trouvé le {formatDate(item.found_on)}
+            <CalendarDays className="h-4 w-4" /> Found {formatDate(item.found_on)}
           </span>
         </div>
         <span
@@ -50,7 +50,7 @@ export default function ObjectCard({ item }: { item: ObjectCardData }) {
           {s.label}
         </span>
         <span className="mt-2 flex items-center gap-1 text-sm font-medium text-brand-dark group-hover:gap-2 group-hover:transition-all">
-          Voir l&apos;objet <ArrowRight className="h-4 w-4" />
+          View item <ArrowRight className="h-4 w-4" />
         </span>
       </div>
     </Link>

@@ -3,16 +3,17 @@
 // no server call and no exposure of how search actually works.
 
 const CATEGORY_KEYWORDS: [string, string[]][] = [
-  ["Téléphone", ["téléphone", "telephone", "phone", "samsung", "iphone", "tecno", "infinix", "android", "portable", "smartphone"]],
-  ["Portefeuille", ["portefeuille", "wallet", "porte-monnaie", "porte monnaie"]],
-  ["Sac", ["sac", "backpack", "cartable", "sacoche", "sac à dos"]],
-  ["Clés", ["clés", "cles", "clé", "clef", "trousseau"]],
-  ["Documents", ["documents", "papiers", "carte d", "cni", "passeport", "permis"]],
+  ["Phone", ["phone", "téléphone", "telephone", "samsung", "iphone", "tecno", "infinix", "android", "smartphone", "portable"]],
+  ["Wallet", ["wallet", "portefeuille", "purse", "porte-monnaie", "porte monnaie"]],
+  ["Bag", ["bag", "backpack", "sac", "cartable", "sacoche"]],
+  ["Keys", ["keys", "key", "clés", "cles", "clé", "clef", "trousseau"]],
+  ["Documents", ["documents", "papers", "papiers", "passport", "passeport", "id card", "carte d"]],
 ];
 
 const COLORS = [
-  "noir", "blanc", "marron", "bleu", "rouge", "vert", "gris", "jaune", "orange",
-  "rose", "violet", "beige", "argenté", "doré",
+  "black", "white", "brown", "blue", "red", "green", "gray", "grey", "yellow",
+  "orange", "pink", "purple", "beige", "silver", "gold",
+  "noir", "blanc", "marron", "bleu", "rouge", "vert", "gris", "jaune", "rose", "violet",
 ];
 
 const ZONES = [
