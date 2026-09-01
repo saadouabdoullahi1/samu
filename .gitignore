@@ -43,3 +43,8 @@ next-env.d.ts
 # Local dev database (node:sqlite)
 samu-dev.db
 samu-dev.db-*
+
+# Local agent/editor config (kept out of the repo)
+.claude/
+CLAUDE.md
+AGENTS.md
