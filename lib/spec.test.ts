@@ -33,24 +33,15 @@ describe("spec integrity", () => {
     }
   });
 
-  it("fetch tools hit /api with only known path placeholders", () => {
+  it("fetch tools hit /api with only known path placeholders and declared body keys", () => {
     for (const t of TOOLS) {
       if (t.transport.kind !== "fetch") continue;
       expect(t.transport.path.startsWith("/api/")).toBe(true);
       for (const p of placeholders(t.transport.path)) {
         expect(KNOWN_PARAMS.has(p)).toBe(true);
       }
-      // body keys must be declared in the input schema
       for (const key of t.transport.body ?? []) {
         expect(Object.keys(t.inputSchema.properties ?? {})).toContain(key);
-      }
-    }
-  });
-
-  it("claim-bound tools reference {claimId} in their path", () => {
-    for (const t of TOOLS) {
-      if (t.transport.kind === "fetch" && t.transport.claim) {
-        expect(t.transport.path).toContain("{claimId}");
       }
     }
   });
@@ -66,15 +57,22 @@ describe("spec integrity", () => {
 });
 
 describe("spec ↔ page contract", () => {
-  it("the item page exposes exactly the verification tools", () => {
+  it("the item page exposes the conversational verification tools", () => {
     expect(toolsForPage("item").map((t) => t.name).sort()).toEqual(
-      ["answer_question", "finalize_claim", "get_item_summary", "list_verification_questions", "request_contact"].sort(),
+      [
+        "complete_verification",
+        "get_found_item",
+        "get_next_verification_question",
+        "request_contact",
+        "start_claim",
+        "submit_verification_answer",
+      ].sort(),
     );
   });
 
   it("the lost page exposes search + open_item", () => {
     expect(toolsForPage("lost").map((t) => t.name).sort()).toEqual(
-      ["open_item", "search_matches"].sort(),
+      ["open_item", "search_found_items"].sort(),
     );
   });
 });

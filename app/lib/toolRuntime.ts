@@ -1,4 +1,3 @@
-import { BUDGET } from "@/lib/constants";
 import { toolsForPage, type PageId, type ToolSpec } from "@/lib/spec";
 import type { ToolDef } from "@/app/hooks/useWebmcpTools";
 
@@ -12,17 +11,14 @@ export interface ToolEvent {
 }
 
 /**
- * Everything a spec tool needs from the mounting page. Getters read live refs
- * so a single ctx object stays correct across renders.
+ * What a spec tool needs from the mounting page. Tools carry their own
+ * item_id / claim_id in their input, so `currentClaim` is only a convenience
+ * fallback for Samu's own chat.
  */
 export interface ToolContext {
   params: Record<string, string>;
-  data: { summary?: unknown; questions?: unknown };
-  budgetLeft: () => number;
   currentClaim: () => string | null;
-  ensureClaim: () => Promise<string>;
   navigate: (path: string) => void;
-  /** Called after every tool run so the page can reflect it in the UI. */
   emit: (toolName: string, event: ToolEvent) => void;
 }
 
@@ -33,30 +29,17 @@ async function executeTool(
 ): Promise<unknown> {
   const t = spec.transport;
 
-  if (t.kind === "local") {
-    const data =
-      t.produces === "summary"
-        ? ctx.data.summary
-        : { questions: ctx.data.questions, budget: BUDGET, budget_left: ctx.budgetLeft() };
-    ctx.emit(spec.name, { input, ok: true, status: 0, data });
-    return data;
-  }
-
   if (t.kind === "navigate") {
-    const path = t.path.replace("{item_id}", String(input.item_id ?? ""));
+    const path = t.path.replace("{item_id}", encodeURIComponent(String(input.item_id ?? "")));
     ctx.navigate(path);
     const data = { navigated_to: path };
     ctx.emit(spec.name, { input, ok: true, status: 0, data });
     return data;
   }
 
-  // fetch
-  let claimId = ctx.currentClaim();
-  if (t.claim === "ensure") claimId = await ctx.ensureClaim();
-
   const path = t.path
-    .replace("{itemId}", ctx.params.id ?? "")
-    .replace("{claimId}", claimId ?? "");
+    .replace("{itemId}", encodeURIComponent(String(input.item_id ?? ctx.params.id ?? "")))
+    .replace("{claimId}", encodeURIComponent(String(input.claim_id ?? ctx.currentClaim() ?? "")));
 
   const body = t.body
     ? Object.fromEntries(t.body.filter((k) => input[k] !== undefined).map((k) => [k, input[k]]))

@@ -44,7 +44,7 @@ export default function SearchPanel() {
   const selectedCategory = manualCategory !== undefined ? manualCategory : criteria.category ?? null;
 
   const emit = useCallback((name: string, ev: ToolEvent) => {
-    if (name === "search_matches") {
+    if (name === "search_found_items") {
       const d = ev.data as { matches?: ObjectCardData[] };
       setMatches(ev.ok && d?.matches ? d.matches : []);
     }
@@ -53,10 +53,7 @@ export default function SearchPanel() {
   const ctx = useMemo<ToolContext>(
     () => ({
       params: {},
-      data: {},
-      budgetLeft: () => 0,
       currentClaim: () => null,
-      ensureClaim: async () => "",
       navigate: (path) => router.push(path),
       emit,
     }),
@@ -74,10 +71,10 @@ export default function SearchPanel() {
     const since = sinceFor(dateOpt);
     setSearching(true);
     setAlerted(false);
-    await runtime.run("search_matches", {
+    await runtime.run("search_found_items", {
       description: query,
-      ...(zoneEff ? { zone: zoneEff } : {}),
-      ...(since ? { since } : {}),
+      ...(zoneEff ? { location: zoneEff } : {}),
+      ...(since ? { date: since } : {}),
     });
     setSearching(false);
   };

@@ -4,26 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, Lock, MapPin, Send, X } from "lucide-react";
 import type { ItemSummary, PublicQuestion } from "@/lib/db";
 import { useWebmcpTools } from "@/app/hooks/useWebmcpTools";
-import { createRuntime, type ToolContext, type ToolEvent } from "@/app/lib/toolRuntime";
-
-const JSON_HEADERS = { "Content-Type": "application/json" };
-const BUDGET = 5;
+import { createRuntime, type ToolContext } from "@/app/lib/toolRuntime";
 
 type Msg = { id: number; role: "samu" | "user" | "note"; text: string };
 
-export default function VerificationPanel({
-  summary,
-  questions,
-}: {
-  summary: ItemSummary;
-  questions: PublicQuestion[];
-}) {
+export default function VerificationPanel({ summary }: { summary: ItemSummary }) {
   const itemId = summary.item_id;
 
   const claimIdRef = useRef<string | null>(null);
-  const budgetLeftRef = useRef(BUDGET);
-  const qIndexRef = useRef(0);
-  const answeredRef = useRef(0);
   const msgId = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -43,105 +31,79 @@ export default function VerificationPanel({
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
-  // --- spec-driven WebMCP runtime (also what external agents drive) ---------
-
-  const ensureClaim = useCallback(async (): Promise<string> => {
-    if (claimIdRef.current) return claimIdRef.current;
-    const res = await fetch(`/api/items/${itemId}/claims`, {
-      method: "POST",
-      headers: JSON_HEADERS,
-      body: "{}",
-    });
-    const data = await res.json();
-    claimIdRef.current = data.claim_id;
-    budgetLeftRef.current = data.budget_left;
-    return data.claim_id as string;
-  }, [itemId]);
-
-  const emit = useCallback((name: string, ev: ToolEvent) => {
-    if (name === "answer_question" && ev.ok) {
-      budgetLeftRef.current = (ev.data as { budget_left: number }).budget_left;
-    }
-  }, []);
-
+  // spec-driven WebMCP runtime — the same tools an external agent drives
   const ctx = useMemo<ToolContext>(
     () => ({
       params: { id: itemId },
-      data: { summary, questions },
-      budgetLeft: () => budgetLeftRef.current,
       currentClaim: () => claimIdRef.current,
-      ensureClaim,
       navigate: () => {},
-      emit,
+      emit: () => {},
     }),
-    [itemId, summary, questions, ensureClaim, emit],
+    [itemId],
   );
-
   const runtime = useMemo(() => createRuntime("item", ctx), [ctx]);
   useWebmcpTools(() => runtime.tools, [runtime]);
 
-  // --- conversation flow (human façade over the same tools) -----------------
+  const claim = () => claimIdRef.current ?? "";
 
-  const askAt = (idx: number) => {
-    const q = questions[idx];
-    if (!q) return;
-    setCurrent(q);
-    push("samu", `Question ${answeredRef.current + 1} / ${BUDGET} — ${q.question}`);
-  };
-
-  const finalizeFlow = async () => {
+  const finalizeFlow = useCallback(async () => {
     setCurrent(null);
     push("samu", "Merci. Je vérifie votre propriété…");
     setBusy(true);
-    const res = (await runtime.run("finalize_claim")) as { verified?: boolean };
+    const res = (await runtime.run("complete_verification", { claim_id: claim() })) as {
+      verified?: boolean;
+    };
     setBusy(false);
     setVerdict(res?.verified ? "verified" : "rejected");
-  };
+  }, [push, runtime]);
 
-  const proceed = async () => {
-    qIndexRef.current += 1;
-    if (answeredRef.current >= BUDGET || qIndexRef.current >= questions.length) {
+  const loadNext = useCallback(async () => {
+    setBusy(true);
+    const res = (await runtime.run("get_next_verification_question", { claim_id: claim() })) as {
+      done?: boolean;
+      question?: PublicQuestion;
+      answered?: number;
+      budget?: number;
+    };
+    setBusy(false);
+    if (res?.done || !res?.question) {
       await finalizeFlow();
-    } else {
-      askAt(qIndexRef.current);
+      return;
     }
-  };
+    setCurrent(res.question);
+    push("samu", `Question ${(res.answered ?? 0) + 1} / ${res.budget ?? 5} — ${res.question.question}`);
+  }, [finalizeFlow, push, runtime]);
 
   const answer = async (text: string) => {
     if (!current || busy) return;
-    const q = current;
     push("user", text);
     setInput("");
     setCurrent(null);
     setBusy(true);
-    const res = (await runtime.run("answer_question", { key: q.key, value: text })) as {
-      error?: string;
-    };
+    const res = (await runtime.run("submit_verification_answer", {
+      claim_id: claim(),
+      answer: text,
+    })) as { error?: string };
     setBusy(false);
     if (res?.error) {
       push("note", "Cette réponse n'a pas pu être enregistrée.");
       return;
     }
-    answeredRef.current += 1;
     push("note", "Réponse enregistrée");
-    await proceed();
-  };
-
-  const skip = async () => {
-    if (!current || busy) return;
-    push("user", "Je préfère passer");
-    setCurrent(null);
-    await proceed();
+    await loadNext();
   };
 
   const start = async () => {
     setStarted(true);
     setBusy(true);
-    await ensureClaim();
+    const res = (await runtime.run("start_claim", { item_id: itemId })) as { claim_id?: string };
+    claimIdRef.current = res?.claim_id ?? null;
     setBusy(false);
-    qIndexRef.current = 0;
-    answeredRef.current = 0;
-    askAt(0);
+    if (!claimIdRef.current) {
+      push("samu", "Désolé, trop de tentatives récentes. Réessayez plus tard.");
+      return;
+    }
+    await loadNext();
   };
 
   // --- Result screens -------------------------------------------------------
@@ -173,6 +135,7 @@ export default function VerificationPanel({
             type="button"
             onClick={async () => {
               await runtime.run("request_contact", {
+                claim_id: claim(),
                 message: "Bonjour, je pense que cet objet est le mien.",
               });
               setContact("pending");
@@ -330,16 +293,6 @@ export default function VerificationPanel({
             <Send className="h-5 w-5" />
           </button>
         </form>
-        {current && (
-          <button
-            type="button"
-            onClick={skip}
-            disabled={busy}
-            className="mt-2 flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600"
-          >
-            Je ne sais pas <ArrowRight className="h-3 w-3" />
-          </button>
-        )}
       </div>
     </div>
   );

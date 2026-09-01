@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, MapPin } from "lucide-react";
-import { getItemSummary, listQuestions } from "@/lib/db";
+import { getItemSummary } from "@/lib/db";
 import { categoryTint, statusMeta } from "@/lib/ui";
 import CategoryIcon from "@/app/components/CategoryIcon";
 import VerificationPanel from "./VerificationPanel";
@@ -19,7 +19,6 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const summary = getItemSummary(id);
   if (!summary) notFound();
-  const questions = listQuestions(id);
   const s = statusMeta(summary.status);
 
   return (
@@ -68,7 +67,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
             restent privées et ne sont jamais dévoilées.
           </p>
         </div>
-        <VerificationPanel summary={summary} questions={questions} />
+        <VerificationPanel summary={summary} />
       </section>
     </main>
   );
