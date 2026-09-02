@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
-import { countClaims, createClaim, getItemSummary, MAX_CLAIMS_PER_ITEM } from "@/lib/db";
+import {
+  claimsForItem,
+  countClaims,
+  createClaim,
+  getItemSummary,
+  MAX_CLAIMS_PER_ITEM,
+} from "@/lib/db";
 import { BUDGET } from "@/lib/scoring";
 import { clientId } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// list_claims — the claims received on this item (finder view). The score is
+// included here because the finder is the one deciding — the claimant never
+// sees it.
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  if (!(await getItemSummary(id))) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  return NextResponse.json({ claims: await claimsForItem(id) });
+}
 
 // Opens a claim on an item. A claim is the budgeted container the agent then
 // spends answers into before finalizing.

@@ -12,7 +12,7 @@ describe("spec integrity", () => {
   });
 
   it("every tool targets a declared page (or a planned one)", () => {
-    const planned: PageId[] = ["my-items", "found"];
+    const planned: PageId[] = ["found"];
     for (const t of TOOLS) {
       expect(PAGE_IDS.has(t.page) || planned.includes(t.page)).toBe(true);
     }
@@ -73,6 +73,12 @@ describe("spec ↔ page contract", () => {
   it("the lost page exposes search + open_item", () => {
     expect(toolsForPage("lost").map((t) => t.name).sort()).toEqual(
       ["open_item", "search_found_items"].sort(),
+    );
+  });
+
+  it("the my-items page exposes the finder tools", () => {
+    expect(toolsForPage("my-items").map((t) => t.name).sort()).toEqual(
+      ["approve_contact", "list_claims"].sort(),
     );
   });
 });

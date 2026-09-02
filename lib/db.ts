@@ -323,6 +323,30 @@ export async function listAnswers(claimId: string): Promise<{ key: string; value
   return rows.map((r) => ({ key: String(r.secret_key), value: String(r.value) }));
 }
 
+export interface ClaimSummary {
+  claim_id: string;
+  status: string;
+  created_at: string;
+  score: number | null; // visible to the finder only — never to the claimant
+}
+
+/** Claims received on one item, newest first (finder dashboard / list_claims). */
+export async function claimsForItem(itemId: string): Promise<ClaimSummary[]> {
+  await ready();
+  const rows = await getDriver().all(
+    `SELECT c.id AS claim_id, c.status, c.created_at, a.score
+     FROM claims c LEFT JOIN attempts a ON a.claim_id = c.id
+     WHERE c.item_id = $1 ORDER BY c.created_at DESC`,
+    [itemId],
+  );
+  return rows.map((r) => ({
+    claim_id: String(r.claim_id),
+    status: String(r.status),
+    created_at: String(r.created_at),
+    score: r.score === null || r.score === undefined ? null : Number(r.score),
+  }));
+}
+
 export async function setClaimStatus(claimId: string, status: string): Promise<void> {
   await ready();
   await getDriver().run(`UPDATE claims SET status = $1 WHERE id = $2`, [status, claimId]);

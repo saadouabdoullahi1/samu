@@ -19,6 +19,24 @@ export function statusMeta(status: string): StatusMeta {
   }
 }
 
+/** Badge for a claim's status on the finder dashboard. */
+export function claimStatusMeta(status: string): StatusMeta {
+  switch (status) {
+    case "verified":
+      return { label: "Verified", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" };
+    case "contact_requested":
+      return { label: "Contact requested", dot: "bg-brand", text: "text-brand-dark", bg: "bg-brand-soft" };
+    case "contact_shared":
+      return { label: "Contact shared", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" };
+    case "rejected":
+      return { label: "Rejected", dot: "bg-red-500", text: "text-red-600", bg: "bg-red-50" };
+    case "expired":
+      return { label: "Expired", dot: "bg-stone-400", text: "text-stone-500", bg: "bg-stone-100" };
+    default: // "open"
+      return { label: "In progress", dot: "bg-stone-400", text: "text-stone-500", bg: "bg-stone-100" };
+  }
+}
+
 const CATEGORY_EMOJI: Record<string, string> = {
   // French (seeded demo data) + English (new items) keys
   téléphone: "📱",

@@ -22,6 +22,9 @@ export default function Footer() {
             <Link href="/found" className="text-stone-500 hover:text-stone-800">
               I found something
             </Link>
+            <Link href="/my-items" className="text-stone-500 hover:text-stone-800">
+              Finder dashboard
+            </Link>
             <a href="/#how" className="text-stone-500 hover:text-stone-800">
               How it works
             </a>

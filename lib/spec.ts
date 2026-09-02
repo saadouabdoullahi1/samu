@@ -48,6 +48,7 @@ export const PAGES: PageSpec[] = [
   { id: "home", path: "/" },
   { id: "lost", path: "/lost" },
   { id: "item", path: "/item/[id]" },
+  { id: "my-items", path: "/my-items" },
 ];
 
 export const TOOLS: ToolSpec[] = [
@@ -157,6 +158,29 @@ export const TOOLS: ToolSpec[] = [
     },
     transport: { kind: "fetch", method: "POST", path: "/api/claims/{claimId}/contact", body: ["message"] },
     dynamic: true,
+  },
+  {
+    name: "list_claims",
+    page: "my-items",
+    description:
+      "List the ownership claims received on one of your found items, with each claim's status and score.",
+    inputSchema: {
+      type: "object",
+      required: ["item_id"],
+      properties: { item_id: { type: "string" } },
+    },
+    transport: { kind: "fetch", method: "GET", path: "/api/items/{itemId}/claims" },
+  },
+  {
+    name: "approve_contact",
+    page: "my-items",
+    description: "Share your contact with a verified claimant who requested it.",
+    inputSchema: {
+      type: "object",
+      required: ["claim_id"],
+      properties: { claim_id: { type: "string" } },
+    },
+    transport: { kind: "fetch", method: "POST", path: "/api/claims/{claimId}/approve" },
   },
 ];
 
