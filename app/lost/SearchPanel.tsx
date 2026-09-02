@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Bell, CalendarDays, Circle, Lock, MapPin, MoreHorizontal, Search } from "lucide-react";
 import { useWebmcpTools } from "@/app/hooks/useWebmcpTools";
 import { createRuntime, type ToolContext, type ToolEvent } from "@/app/lib/toolRuntime";
@@ -28,7 +27,6 @@ function sinceFor(opt: string): string | undefined {
 }
 
 export default function SearchPanel() {
-  const router = useRouter();
   const [description, setDescription] = useState("");
   const [manualCategory, setManualCategory] = useState<string | null | undefined>(undefined);
   const [zone, setZone] = useState("");
@@ -51,10 +49,14 @@ export default function SearchPanel() {
     () => ({
       params: {},
       currentClaim: () => null,
-      navigate: (path) => router.push(path),
+      // Hard navigation: a real page load reliably switches the agent's
+      // in-app browser and re-registers the destination page's tools.
+      navigate: (path) => {
+        window.location.href = path;
+      },
       emit,
     }),
-    [router, emit],
+    [emit],
   );
 
   const runtime = useMemo(() => createRuntime("lost", ctx), [ctx]);

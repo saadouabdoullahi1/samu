@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Lock, MapPin, Send, X } from "lucide-react";
+import { Check, Lock, MapPin, Send, X } from "lucide-react";
 import type { ItemSummary, PublicQuestion } from "@/lib/db";
 import { useWebmcpTools } from "@/app/hooks/useWebmcpTools";
-import { createRuntime, type ToolContext } from "@/app/lib/toolRuntime";
+import { createRuntime, type ToolContext, type ToolEvent } from "@/app/lib/toolRuntime";
 
 type Msg = { id: number; role: "samu" | "user" | "note"; text: string };
 
@@ -31,79 +31,83 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
-  // spec-driven WebMCP runtime — the same tools an external agent drives
+  // Single source of UI updates: every tool result flows through here, whether
+  // it was triggered by a button in this page or by an external agent calling
+  // the WebMCP tool directly. This is what keeps the screen in sync with the
+  // agent.
+  const emit = useCallback(
+    (name: string, ev: ToolEvent) => {
+      const data = ev.data as Record<string, unknown> | null;
+      if (name === "start_claim") {
+        if (ev.ok && typeof data?.claim_id === "string") {
+          claimIdRef.current = data.claim_id;
+          setStarted(true);
+        } else {
+          setStarted(true);
+          push("samu", "Sorry, too many recent attempts. Please try again later.");
+        }
+      } else if (name === "get_next_verification_question") {
+        const q = data?.question as PublicQuestion | undefined;
+        if (data?.done || !q) {
+          setCurrent(null);
+        } else {
+          setCurrent(q);
+          const n = (Number(data?.answered ?? 0)) + 1;
+          const total = Number(data?.budget ?? 5);
+          push("samu", `Question ${n} of ${total} — ${q.question}`);
+        }
+      } else if (name === "submit_verification_answer") {
+        const ans = String((ev.input as Record<string, unknown>)?.answer ?? "");
+        if (ans) push("user", ans);
+        push("note", ev.ok ? "Answer recorded" : "That answer couldn't be recorded.");
+        setCurrent(null);
+      } else if (name === "complete_verification") {
+        setCurrent(null);
+        setVerdict(data?.verified ? "verified" : "rejected");
+      } else if (name === "request_contact") {
+        if (ev.ok) setContact("pending");
+      }
+    },
+    [push],
+  );
+
   const ctx = useMemo<ToolContext>(
     () => ({
       params: { id: itemId },
       currentClaim: () => claimIdRef.current,
       navigate: () => {},
-      emit: () => {},
+      emit,
     }),
-    [itemId],
+    [itemId, emit],
   );
   const runtime = useMemo(() => createRuntime("item", ctx), [ctx]);
   useWebmcpTools(() => runtime.tools, [runtime]);
 
   const claim = () => claimIdRef.current ?? "";
 
-  const finalizeFlow = useCallback(async () => {
-    setCurrent(null);
-    push("samu", "Thanks. Verifying your ownership…");
-    setBusy(true);
-    const res = (await runtime.run("complete_verification", { claim_id: claim() })) as {
-      verified?: boolean;
-    };
-    setBusy(false);
-    setVerdict(res?.verified ? "verified" : "rejected");
-  }, [push, runtime]);
-
-  const loadNext = useCallback(async () => {
-    setBusy(true);
-    const res = (await runtime.run("get_next_verification_question", { claim_id: claim() })) as {
+  // Thin orchestration for the human buttons — the agent chains the tools
+  // itself. UI updates happen in emit either way.
+  const runNext = async () => {
+    const nx = (await runtime.run("get_next_verification_question", { claim_id: claim() })) as {
       done?: boolean;
-      question?: PublicQuestion;
-      answered?: number;
-      budget?: number;
     };
-    setBusy(false);
-    if (res?.done || !res?.question) {
-      await finalizeFlow();
-      return;
-    }
-    setCurrent(res.question);
-    push("samu", `Question ${(res.answered ?? 0) + 1} of ${res.budget ?? 5} — ${res.question.question}`);
-  }, [finalizeFlow, push, runtime]);
-
-  const answer = async (text: string) => {
-    if (!current || busy) return;
-    push("user", text);
-    setInput("");
-    setCurrent(null);
-    setBusy(true);
-    const res = (await runtime.run("submit_verification_answer", {
-      claim_id: claim(),
-      answer: text,
-    })) as { error?: string };
-    setBusy(false);
-    if (res?.error) {
-      push("note", "That answer couldn't be recorded.");
-      return;
-    }
-    push("note", "Answer recorded");
-    await loadNext();
+    if (nx?.done) await runtime.run("complete_verification", { claim_id: claim() });
   };
 
   const start = async () => {
-    setStarted(true);
     setBusy(true);
-    const res = (await runtime.run("start_claim", { item_id: itemId })) as { claim_id?: string };
-    claimIdRef.current = res?.claim_id ?? null;
+    await runtime.run("start_claim", { item_id: itemId });
+    if (claimIdRef.current) await runNext();
     setBusy(false);
-    if (!claimIdRef.current) {
-      push("samu", "Sorry, too many recent attempts. Please try again later.");
-      return;
-    }
-    await loadNext();
+  };
+
+  const answer = async (text: string) => {
+    if (!current || busy) return;
+    setInput("");
+    setBusy(true);
+    await runtime.run("submit_verification_answer", { claim_id: claim(), answer: text });
+    await runNext();
+    setBusy(false);
   };
 
   // --- Result screens -------------------------------------------------------
@@ -116,9 +120,7 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
         </div>
         <div className="flex flex-col gap-1">
           <h3 className="text-2xl font-bold text-emerald-800">Ownership verified</h3>
-          <p className="max-w-sm text-stone-600">
-            This item matches the information you provided.
-          </p>
+          <p className="max-w-sm text-stone-600">This item matches the information you provided.</p>
         </div>
         <div className="mt-2 w-full max-w-sm rounded-2xl bg-white p-4 text-left">
           <p className="flex items-center gap-1.5 text-sm text-stone-500">
@@ -133,13 +135,9 @@ export default function VerificationPanel({ summary }: { summary: ItemSummary })
         ) : (
           <button
             type="button"
-            onClick={async () => {
-              await runtime.run("request_contact", {
-                claim_id: claim(),
-                message: "Hello, I believe this item is mine.",
-              });
-              setContact("pending");
-            }}
+            onClick={() =>
+              runtime.run("request_contact", { claim_id: claim(), message: "Hello, I believe this item is mine." })
+            }
             className="rounded-2xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark"
           >
             Contact the finder
